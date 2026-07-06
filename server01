@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <!-- 스마트폰 화면 크기에 딱 맞추고 비율 고정 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Burger Voice Control</title>
+    
+    <!-- ROS 웹소켓 통신을 위한 로봇 라이브러리 (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    
+    <style>
+        /* 모바일 최적화 깔끔한 UI 스타일링 */
+        body { 
+            text-align: center; 
+            font-family: 'Malgun Gothic', sans-serif; 
+            padding: 30px 20px; 
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        h1 { font-size: 1.6rem; color: #2c3e50; margin-bottom: 5px; }
+        .sub-title { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 25px; }
+        
+        #status-container {
+            background-color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        #status { font-weight: bold; color: #e74c3c; } /* 기본 빨간색 (연결 안됨) */
+        
+        #result-box { 
+            background-color: #ffffff;
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 2px dashed #bdc3c7; 
+            border-radius: 10px;
+            min-height: 60px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .btn { 
+            width: 100%; 
+            padding: 18px; 
+            margin: 10px 0; 
+            font-size: 1.2rem; 
+            font-weight: bold;
+            border-radius: 12px; 
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        
+        #start-btn { background-color: #2ecc71; color: white; }
+        #stop-btn { background-color: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+
+    <h1>🐢 터틀봇 버거 음성 제어</h1>
+    <div class="sub-title">Live Server 모바일 연결 모드</div>
+    
+    <div id="status-container">
+        로봇 상태: <span id="status">터틀봇 연결 대기 중...</span>
+    </div>
+    
+    <div id="result-box">아래 버튼을 누르고 말씀하세요.</div>
+
+    <button id="start-btn" class="btn">🎤 음성 인식 시작</button>
+    <button id="stop-btn" class="btn">🛑 비상 정지 (멈춰)</button>
+
+    <script>
+        // ========================================================
+        // [필수 수정] 여기에 본인의 터틀봇 IP 주소를 적어주세요!
+        // ========================================================
+        const TURTLEBOT_IP = "192.168.0.10"; // 예: "192.168.XXX.XXX"
+        
+        const statusEl = document.getElementById('status');
+        const resultEl = document.getElementById('result-box');
+
+        // 1. ROSBridge 웹소켓 연결 세팅
+        const ros = new ROSLIB.Ros({
+            url : 'ws://' + TURTLEBOT_IP + ':9090'
+        });
+
+        // 연결 상태에 따른 화면 표시 변화
+        ros.on('connection', () => { 
+            statusEl.innerText = "연결 성공 (제어 가능)"; 
+            statusEl.style.color = "#2ecc71"; // 초록색
+        });
+        ros.on('error', (error) => { 
+            statusEl.innerText = "연결 오류 발생 (IP 및 공유기 확인)"; 
+            statusEl.style.color = "#e74c3c"; // 빨간색
+        });
+        ros.on('close', () => { 
+            statusEl.innerText = "연결이 끊어졌습니다."; 
+            statusEl.style.color = "#7f8c8d"; // 회색
+        });
+
+        // 2. 터틀봇 제어를 위한 /cmd_vel 토픽 발행(Publish) 설정
+        const cmdVel = new ROSLIB.Topic({
+            ros : ros,
+            name : '/cmd_vel',
+            messageType : 'geometry_msgs/Twist'
+        });
+
+        // 로봇에게 속도 명령을 전송하는 공통 함수
+        function sendRobotCommand(linearX, angularZ) {
+            let twist = new ROSLIB.Message({
+                linear: { x: linearX, y: 0.0, z: 0.0 },
+                angular: { x: 0.0, y: 0.0, z: angularZ }
+            });
+            cmdVel.publish(twist);
+        }
+
+        // 3. 스마트폰 웹 음성 인식(Web Speech API) 세팅
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            resultEl.innerText = "이 브라우저는 음성 인식을 지원하지 않습니다. 크롬을 사용해 주세요.";
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';        // 한국어 인식 적용
+            recognition.interimResults = false; // 중간 과정 말고 최종 결과만 수신
+            recognition.maxAlternatives = 1;
+
+            // 음성 인식 시작 버튼 이벤트
+            document.getElementById('start-btn').addEventListener('click', () => {
+                try {
+                    recognition.start();
+                    resultEl.innerText = "듣고 있습니다... 말씀하세요! 🎧";
+                    resultEl.style.color = "#2980b9";
+                } catch (e) {
+                    resultEl.innerText = "이미 음성 인식 기능이 켜져 있습니다.";
+                }
+            });
+
+            // 음성 인식 성공 시 실행되는 핵심 로직 (AI 명령어 분석)
+            recognition.onresult = function(event) {
+                const speechToText = event.results[0][0].transcript.trim();
+                resultEl.innerText = `인식된 명령: "${speechToText}"`;
+                resultEl.style.color = "#333";
+
+                // 자연어 포함 여부 체크 (터틀봇 버거 안전 속도 기준: 전진 0.12, 회전 0.4)
+                if (speechToText.includes("앞으로") || speechToText.includes("전진") || speechToText.includes("가라")) {
+                    sendRobotCommand(0.12, 0.0);
+                } 
+                else if (speechToText.includes("뒤로") || speechToText.includes("후진") || speechToText.includes("빽")) {
+                    sendRobotCommand(-0.12, 0.0);
+                } 
+                else if (speechToText.includes("왼쪽") || speechToText.includes("좌회전")) {
+                    sendRobotCommand(0.0, 0.4);
+                } 
+                else if (speechToText.includes("오른쪽") || speechToText.includes("우회전")) {
+                    sendRobotCommand(0.0, -0.4);
+                } 
+                else if (speechToText.includes("멈춰") || speechToText.includes("정지") || speechToText.includes("스톱")) {
+                    sendRobotCommand(0.0, 0.0);
+                } 
+                else {
+                    resultEl.innerText = `"${speechToText}" 은(는) 알 수 없는 명령입니다.`;
+                    resultEl.style.color = "#e67e22";
+                }
+            };
+
+            // 음성 인식 에러 처리
+            recognition.onerror = function(event) {
+                resultEl.innerText = "음성을 인식하지 못했습니다. 다시 시도해 주세요.";
+                resultEl.style.color = "#7f8c8d";
+            };
+        }
+
+        // 4. 화면상의 '비상 정지' 빨간 버튼 이벤트
+        document.getElementById('stop-btn').addEventListener('click', () => {
+            sendRobotCommand(0.0, 0.0);
+            resultEl.innerText = "🛑 비상 정지 명령을 전송했습니다.";
+            resultEl.style.color = "#e74c3c";
+        });
+    </script>
+</body>
+</html>
