@@ -1,0 +1,14 @@
+
+ROS 2 패키지는 아래 명령어로 생성하였다.
+
+ros2 pkg create voice_assistant_robot \
+  --build-type ament_python \
+  --dependencies rclpy std_msgs geometry_msgs sensor_msgs
+
+package.xml, setup.py, setup.cfg, resource/, __init__.py는
+ROS 2 패키지 생성 시 자동으로 만들어진 기본 파일이다.
+
+직접 작성한 주요 코드는 다음과 같다.
+
+- web/index.html
+- ros2_ws/src/voice_assistant_robot/voice_assistant_robot/assistant_coordinator.py
