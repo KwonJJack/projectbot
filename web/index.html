@@ -1,10 +1,299 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>Voice Assistant Robot</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Assistant Robot Test</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    .card {
+      background: white;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 6px 0;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #2d6cdf;
+      color: white;
+      cursor: pointer;
+    }
+
+    button.stop {
+      background: #444;
+    }
+
+    button.emergency {
+      background: #d62828;
+    }
+
+    button.voice {
+      background: #2a9d8f;
+    }
+
+    .status {
+      font-weight: bold;
+      color: #2d6cdf;
+    }
+
+    .log {
+      background: #111;
+      color: #0f0;
+      padding: 12px;
+      height: 180px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>Voice Assistant Robot Test</h1>
+  <h1>AI 음성인식 비서 테스트</h1>
+
+  <div class="card">
+    <h2>1. ROS 연결</h2>
+
+    <label>rosbridge 주소</label>
+    <input id="rosUrl" value="ws://192.168.0.14:9090" />
+
+    <button onclick="connectROS()">ROS 연결</button>
+    <p>연결 상태: <span id="connectStatus" class="status">DISCONNECTED</span></p>
+  </div>
+
+  <div class="card">
+    <h2>2. 명령 버튼 테스트</h2>
+
+    <button onclick="sendVoiceCommand('FORWARD')">앞으로 FORWARD</button>
+    <button onclick="sendVoiceCommand('BACKWARD')">뒤로 BACKWARD</button>
+    <button onclick="sendVoiceCommand('LEFT')">왼쪽 LEFT</button>
+    <button onclick="sendVoiceCommand('RIGHT')">오른쪽 RIGHT</button>
+    <button class="stop" onclick="sendVoiceCommand('STOP')">정지 STOP</button>
+    <button onclick="sendVoiceCommand('STATUS')">상태 확인 STATUS</button>
+    <button class="emergency" onclick="sendEmergencyStop()">비상 정지 EMERGENCY</button>
+  </div>
+
+  <div class="card">
+    <h2>3. 음성인식 테스트</h2>
+    <button class="voice" onclick="startVoiceRecognition()">마이크 시작</button>
+    <p>인식 문장: <span id="recognizedText">없음</span></p>
+    <p>변환 명령: <span id="mappedCommand">없음</span></p>
+  </div>
+
+  <div class="card">
+    <h2>4. ROS 상태</h2>
+    <p>assistant_state: <span id="assistantState" class="status">없음</span></p>
+  </div>
+
+  <div class="card">
+    <h2>5. 로그</h2>
+    <div id="logBox" class="log"></div>
+  </div>
+
+  <script>
+    let ros = null;
+    let voiceCmdTopic = null;
+    let emergencyStopTopic = null;
+    let assistantStateTopic = null;
+
+    function log(message) {
+      const logBox = document.getElementById("logBox");
+      const now = new Date().toLocaleTimeString();
+      logBox.textContent += `[${now}] ${message}\n`;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function connectROS() {
+      const url = document.getElementById("rosUrl").value;
+
+      ros = new ROSLIB.Ros({
+        url: url
+      });
+
+      ros.on("connection", function () {
+        document.getElementById("connectStatus").textContent = "CONNECTED";
+        log("ROS 연결 성공: " + url);
+
+        setupTopics();
+      });
+
+      ros.on("error", function (error) {
+        document.getElementById("connectStatus").textContent = "ERROR";
+        log("ROS 연결 에러: " + error);
+      });
+
+      ros.on("close", function () {
+        document.getElementById("connectStatus").textContent = "CLOSED";
+        log("ROS 연결 종료");
+      });
+    }
+
+    function setupTopics() {
+      voiceCmdTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: "/voice_cmd",
+        messageType: "std_msgs/String"
+      });
+
+      emergencyStopTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: "/emergency_stop",
+        messageType: "std_msgs/Bool"
+      });
+
+      assistantStateTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: "/assistant_state",
+        messageType: "std_msgs/String"
+      });
+
+      assistantStateTopic.subscribe(function (msg) {
+        document.getElementById("assistantState").textContent = msg.data;
+        log("수신 /assistant_state: " + msg.data);
+      });
+
+      log("토픽 설정 완료");
+    }
+
+    function sendVoiceCommand(command) {
+      if (!voiceCmdTopic) {
+        log("아직 ROS가 연결되지 않았음");
+        return;
+      }
+
+      const msg = new ROSLIB.Message({
+        data: command
+      });
+
+      voiceCmdTopic.publish(msg);
+      log("발행 /voice_cmd: " + command);
+    }
+
+    function sendEmergencyStop() {
+      if (!emergencyStopTopic) {
+        log("아직 ROS가 연결되지 않았음");
+        return;
+      }
+
+      const msg = new ROSLIB.Message({
+        data: true
+      });
+
+      emergencyStopTopic.publish(msg);
+      log("발행 /emergency_stop: true");
+    }
+
+    function startVoiceRecognition() {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        alert("이 브라우저는 음성인식을 지원하지 않습니다. Chrome을 사용하세요.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ko-KR";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.start();
+      log("음성인식 시작");
+
+      recognition.onresult = function (event) {
+        const text = event.results[0][0].transcript.trim();
+        document.getElementById("recognizedText").textContent = text;
+
+        const command = mapKoreanToCommand(text);
+        document.getElementById("mappedCommand").textContent = command;
+
+        log("음성 인식 결과: " + text);
+        log("명령 변환 결과: " + command);
+
+        if (command !== "UNKNOWN") {
+          sendVoiceCommand(command);
+        } else {
+          log("알 수 없는 명령이라 발행하지 않음");
+        }
+      };
+
+      recognition.onerror = function (event) {
+        log("음성인식 에러: " + event.error);
+      };
+
+      recognition.onend = function () {
+        log("음성인식 종료");
+      };
+    }
+
+    function mapKoreanToCommand(text) {
+      const t = text.replace(/\s/g, "");
+
+      if (t.includes("앞으로") || t.includes("전진")) {
+        return "FORWARD";
+      }
+
+      if (t.includes("뒤로") || t.includes("후진")) {
+        return "BACKWARD";
+      }
+
+      if (t.includes("왼쪽") || t.includes("좌회전")) {
+        return "LEFT";
+      }
+
+      if (t.includes("오른쪽") || t.includes("우회전")) {
+        return "RIGHT";
+      }
+
+      if (t.includes("정지") || t.includes("멈춰") || t.includes("스톱")) {
+        return "STOP";
+      }
+
+      if (t.includes("상태")) {
+        return "STATUS";
+      }
+
+      if (t.includes("비상") || t.includes("긴급")) {
+        return "EMERGENCY_STOP";
+      }
+
+      return "UNKNOWN";
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        log("화면 전환 감지 → 비상 정지 발행");
+        sendEmergencyStop();
+      }
+    });
+  </script>
 </body>
 </html>
