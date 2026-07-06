@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Burger Voice Control</title>
+
+    <!-- [확장성 포인트] ROS 웹소켓 통신을 위한 로봇 라이브러리 (CDN) -->
+    <!-- 터틀봇 외에 다른 ROS/ROS2 기반 로봇이나 Gazebo 시뮬레이터와 통신할 때도 이 라이브러리를 그대로 사용합니다. -->
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+
+    <style>
+        /* 모바일 최적화 깔끔한 UI 스타일링 */
+        body {
+            text-align: center;
+            font-family: 'Malgun Gothic', sans-serif;
+            padding: 30px 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        h1 { font-size: 1.6rem; color: #2c3e50; margin-bottom: 5px; }
+        .sub-title { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 25px; }
+        
+        #status-container {
+            background-color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+        .disconnected { color: #e74c3c; }
+        .connected { color: #2ecc71; }
+
+        #result-box {
+            width: 100%;
+            min-height: 100px;
+            background-color: #ffffff;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        
+        .btn-start { background-color: #2ecc71; color: white; }
+        .btn-stop { background-color: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+
+    <h1>🐢 터틀봇 버거 음성 제어</h1>
+    <div class="sub-title">Live Server 모바일 웹앱 모드</div>
+
+    <!-- 로봇 연결 상태 표시 -->
+    <div id="status-container">
+        로봇 상태: <span id="robot-status" class="disconnected">연결 대기 중...</span>
+    </div>
+
+    <!-- 음성 인식 결과 출력창 -->
+    <div id="result-box" id="speech-result">
+        아래 버튼을 누르고 말씀하세요.
+    </div>
+
+    <!-- 제어 버튼 인터페이스 -->
+    <button class="btn btn-start" id="btn-start">🎤 음성 인식 시작</button>
+    <button class="btn btn-stop" id="btn-stop">🛑 비상 정지 (멈춰)</button>
+
+    <!-- 외부 스크립트 파일 로드 -->
+    <script src="app.js"></script>
+</body>
+</html>
