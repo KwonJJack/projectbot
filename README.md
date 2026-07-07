@@ -150,7 +150,7 @@ ngrok http 8000
 
     http://<RaspberryPi_IP>:8000
 또는
-    [https://](https://shakable-immorally-tributary.ngrok-free.dev)
+    https://shakable-immorally-tributary.ngrok-free.dev
 
 접속하여 웹 제어 화면 사용
 
