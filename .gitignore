@@ -1,0 +1,15 @@
+# VS Code
+.vscode/
+*.code-workspace
+
+# Python
+__pycache__/
+*.pyc
+
+# ROS2
+build/
+install/
+log/
+
+# Media
+*.wav
