@@ -142,10 +142,15 @@ ros2 launch turtlebot3_bringup robot.launch.py
 cd ~/voice_assistant/server
 python3 server.py
 ```
-
+### 4) ngrok 서버 포트 포워딩
+``` bash
+ngrok http 8000
+```
 실행 후:
 
     http://<RaspberryPi_IP>:8000
+또는
+    [https://](https://shakable-immorally-tributary.ngrok-free.dev)
 
 접속하여 웹 제어 화면 사용
 
