@@ -132,7 +132,8 @@ source /opt/ros/humble/setup.bash
 ### 2) TurtleBot Bringup 실행
 
 ``` bash
-ros2 launch <bringup_package> <launch_file>
+export TURTLEBOT3_MODEL=burger
+ros2 launch turtlebot3_bringup robot.launch.py
 ```
 
 ### 3) Voice Assistant Server 실행
