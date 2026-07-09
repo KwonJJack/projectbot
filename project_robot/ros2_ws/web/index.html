@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>TurtleBot3 AI Assistant</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🤖 TurtleBot3 AI Assistant</h1>
+
+    <!-- Connection -->
+    <div class="card">
+        <h2>Connection</h2>
+
+        <p id="connection">
+            🔴 Disconnected
+        </p>
+    </div>
+
+    <!-- Robot State -->
+    <div class="card">
+        <h2>Robot State</h2>
+
+        <p id="robotState">
+            IDLE
+        </p>
+    </div>
+
+    <!-- Follow Mode -->
+    <div class="card follow-card">
+        <h2>🚶 Person Follow Mode</h2>
+
+        <p id="followModeText">
+            Follow Mode: OFF
+        </p>
+
+        <p class="hint">
+            사용 순서: ① 카메라 시작 → ② “사람 따라가” 음성 명령 → 자동 실시간 인식 시작
+        </p>
+    </div>
+
+    <!-- Voice -->
+    <div class="card">
+        <h2>🎤 Voice Recognition</h2>
+
+        <p id="voiceText">
+            대기 중...
+        </p>
+    </div>
+
+    <!-- AI Response -->
+    <div class="card">
+        <h2>💬 Command Result</h2>
+
+        <p id="aiText">
+            대기 중...
+        </p>
+    </div>
+
+    <!-- Voice Button -->
+    <div class="voice">
+        <button id="recordBtn">
+            🎤 음성 입력
+        </button>
+    </div>
+
+    <!-- Camera / YOLO -->
+    <div class="card">
+        <h2>📷 YOLO Person Detection</h2>
+
+        <p id="cameraState">
+            카메라 대기 중...
+        </p>
+
+        <video id="webcam"
+               autoplay
+               playsinline
+               muted>
+        </video>
+
+        <div class="camera-buttons">
+
+            <button id="startCameraBtn">
+                📷 카메라 시작
+            </button>
+
+            <button id="startDetectBtn">
+                ▶️ 실시간 인식 시작
+            </button>
+
+            <button id="stopCameraBtn">
+                🔌 카메라 끄기
+            </button>
+
+        </div>
+
+        <p id="detectResult">
+            탐지 결과 대기 중...
+        </p>
+    </div>
+
+    <!-- Manual Controller -->
+    <div class="controller">
+
+        <button id="forward">
+            ▲
+        </button>
+
+        <div class="middle">
+
+            <button id="left">
+                ◀
+            </button>
+
+            <button id="stop">
+                ■
+            </button>
+
+            <button id="right">
+                ▶
+            </button>
+
+        </div>
+
+        <button id="backward">
+            ▼
+        </button>
+
+    </div>
+
+    <!-- Emergency -->
+    <div class="emergency">
+
+        <button id="emergency">
+            🛑 Emergency Stop
+        </button>
+
+        <button id="release">
+            ✅ Release Emergency
+        </button>
+
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+        <h2>Log</h2>
+
+        <div id="logBox">
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/script.js?v=follow_auto_1"></script>
+
+</body>
+
+</html>
